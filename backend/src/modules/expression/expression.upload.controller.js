@@ -1,15 +1,9 @@
+import { handleUpload } from "@vercel/blob/client";
 import prisma from "../../config/prisma.js";
 
 export const uploadVideo = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No video uploaded.",
-      });
-    }
 
     const expression = await prisma.expression.findUnique({
       where: { id },
@@ -22,23 +16,44 @@ export const uploadVideo = async (req, res) => {
       });
     }
 
-    const videoUrl = `/uploads/videos/${req.file.filename}`;
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
 
-    const updated = await prisma.expression.update({
-      where: { id },
-      data: {
-        videoUrl,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        return {
+          allowedContentTypes: [
+            "video/mp4",
+            "video/webm",
+            "video/ogg",
+          ],
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({
+            expressionId: id,
+            clientPayload,
+          }),
+        };
+      },
+
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        const payload = JSON.parse(tokenPayload);
+
+        await prisma.expression.update({
+          where: {
+            id: payload.expressionId,
+          },
+          data: {
+            videoUrl: blob.url,
+          },
+        });
       },
     });
 
-    res.json({
-      success: true,
-      message: "Video uploaded successfully.",
-      data: updated,
-    });
-
+    return res.status(200).json(jsonResponse);
   } catch (error) {
-    res.status(500).json({
+    console.error("Video upload error:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
