@@ -15,10 +15,13 @@ const router = Router();
 
 router.get("/", getAllExpressions);
 router.get("/:id", getExpressionById);
-router.post("/", createExpression);
-router.put("/:id", updateExpression);
+
+router.post("/", express.json(), createExpression);
+router.put("/:id", express.json(), updateExpression);
+
 router.delete("/:id", deleteExpression);
 
+// Vercel Blob client-token request
 router.post(
   "/:id/video",
   express.json(),

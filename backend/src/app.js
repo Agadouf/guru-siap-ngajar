@@ -12,17 +12,9 @@ app.use(cors());
 
 app.use("/uploads", express.static("src/uploads"));
 
-/*
- * Vercel Blob client-upload requests must be parsed
- * as JSON before reaching handleUpload().
- *
- * The Blob endpoint has its own JSON parser in
- * expression.routes.js.
- */
-
-app.use("/api/expressions", routes);
-
-app.use(express.json());
+// IMPORTANT:
+// Do NOT globally parse JSON before the Blob upload route.
+// The Blob route handles its own JSON body.
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", routes);

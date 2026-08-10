@@ -16,12 +16,17 @@ export const uploadVideo = async (req, res) => {
       });
     }
 
-    const body =
-      typeof req.body === "string"
-        ? JSON.parse(req.body)
-        : req.body;
+    // This must be the JSON body sent by @vercel/blob/client
+    const body = req.body;
 
-    console.log("Blob upload body:", body);
+    console.log("BLOB BODY:", JSON.stringify(body));
+
+    if (!body || !body.type) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Vercel Blob upload request body.",
+      });
+    }
 
     const jsonResponse = await handleUpload({
       body,
@@ -38,12 +43,15 @@ export const uploadVideo = async (req, res) => {
             "video/webm",
             "video/ogg",
           ],
+
           addRandomSuffix: true,
+
+          multipart,
+
           tokenPayload: JSON.stringify({
             expressionId: id,
             clientPayload,
           }),
-          multipart,
         };
       },
 
