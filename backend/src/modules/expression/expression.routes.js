@@ -1,5 +1,6 @@
 import { Router } from "express";
-//import upload from "../../middleware/upload.middleware.js";
+import express from "express";
+
 import { uploadVideo } from "./expression.upload.controller.js";
 
 import {
@@ -17,6 +18,11 @@ router.get("/:id", getExpressionById);
 router.post("/", createExpression);
 router.put("/:id", updateExpression);
 router.delete("/:id", deleteExpression);
-router.post("/:id/video", uploadVideo);
+
+router.post(
+  "/:id/video",
+  express.json(),
+  uploadVideo
+);
 
 export default router;
