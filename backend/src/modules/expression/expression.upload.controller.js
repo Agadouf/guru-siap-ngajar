@@ -16,11 +16,22 @@ export const uploadVideo = async (req, res) => {
       });
     }
 
+    const body =
+      typeof req.body === "string"
+        ? JSON.parse(req.body)
+        : req.body;
+
+    console.log("Blob upload body:", body);
+
     const jsonResponse = await handleUpload({
-      body: req.body,
+      body,
       request: req,
 
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
+      onBeforeGenerateToken: async (
+        pathname,
+        clientPayload,
+        multipart
+      ) => {
         return {
           allowedContentTypes: [
             "video/mp4",
@@ -32,6 +43,7 @@ export const uploadVideo = async (req, res) => {
             expressionId: id,
             clientPayload,
           }),
+          multipart,
         };
       },
 
