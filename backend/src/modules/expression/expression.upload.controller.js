@@ -16,25 +16,13 @@ export const uploadVideo = async (req, res) => {
       });
     }
 
-    // Vercel Blob client uploads send a JSON event.
-    // Read the raw request body when Express has not populated req.body.
-    let body = req.body;
+    // Vercel Blob client upload sends the upload event as JSON.
+    const body = req.body;
 
-    if (!body) {
-      let rawBody = "";
-
-      for await (const chunk of req) {
-        rawBody += chunk;
-      }
-
-      if (rawBody) {
-        body = JSON.parse(rawBody);
-      }
-    }
-
+    console.log("BLOB BODY TYPE:", typeof body);
     console.log("BLOB BODY:", body);
 
-    if (!body || !body.type) {
+    if (!body || typeof body !== "object" || !body.type) {
       return res.status(400).json({
         success: false,
         message: "Invalid Vercel Blob upload request body.",

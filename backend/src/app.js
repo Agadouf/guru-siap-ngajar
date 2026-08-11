@@ -10,12 +10,13 @@ const app = express();
 
 app.use(cors());
 
-app.use("/uploads", express.static("src/uploads"));
+// Parse normal JSON requests
+app.use(express.json());
 
-// IMPORTANT:
-// Do NOT globally parse JSON before the Blob upload route.
-// The Blob route handles its own JSON body.
+// Parse URL-encoded requests
 app.use(express.urlencoded({ extended: true }));
+
+app.use("/uploads", express.static("src/uploads"));
 
 app.use("/api", routes);
 

@@ -1,5 +1,4 @@
-import { Router } from "express";
-import express from "express";
+import express, { Router } from "express";
 
 import { uploadVideo } from "./expression.upload.controller.js";
 
@@ -13,19 +12,16 @@ import {
 
 const router = Router();
 
+router.use(express.json());
+
 router.get("/", getAllExpressions);
 router.get("/:id", getExpressionById);
 
-router.post("/", express.json(), createExpression);
-router.put("/:id", express.json(), updateExpression);
+router.post("/", createExpression);
+router.put("/:id", updateExpression);
 
 router.delete("/:id", deleteExpression);
 
-// Vercel Blob client-token request
-router.post(
-  "/:id/video",
-  express.json(),
-  uploadVideo
-);
+router.post("/:id/video", uploadVideo);
 
 export default router;

@@ -1,19 +1,20 @@
+import { upload } from "@vercel/blob/client";
 import api from "./api";
 
-export const uploadVideo = async (expressionId, file) => {
-  const formData = new FormData();
-
-  formData.append("video", file);
-
-  const response = await api.post(
-    `/expressions/${expressionId}/video`,
-    formData,
+export const uploadVideo = async (expressionId, file, onProgress) => {
+  const blob = await upload(
+    `videos/${expressionId}/${file.name}`,
+    file,
     {
-      headers: {
-        "Content-Type": "multipart/form-data",
+      access: "public",
+      handleUploadUrl: `${api.defaults.baseURL}/expressions/${expressionId}/video`,
+      onUploadProgress: (event) => {
+        if (onProgress) {
+          onProgress(event.percentage);
+        }
       },
     }
   );
 
-  return response.data.data;
+  return blob;
 };
