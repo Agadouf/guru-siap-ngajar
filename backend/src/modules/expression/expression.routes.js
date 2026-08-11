@@ -1,4 +1,4 @@
-import express, { Router } from "express";
+import { Router } from "express";
 
 import { uploadVideo } from "./expression.upload.controller.js";
 
@@ -11,8 +11,6 @@ import {
 } from "./expression.controller.js";
 
 const router = Router();
-
-router.use(express.json());
 
 router.get("/", getAllExpressions);
 router.get("/:id", getExpressionById);
