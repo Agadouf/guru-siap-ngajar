@@ -16,16 +16,12 @@ export const uploadVideo = async (req, res) => {
       });
     }
 
-    // Vercel Blob client upload sends the upload event as JSON.
     const body = req.body;
 
-    console.log("BLOB BODY TYPE:", typeof body);
-    console.log("BLOB BODY:", body);
-
-    if (!body || typeof body !== "object" || !body.type) {
+    if (!body || !body.type) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Vercel Blob upload request body.",
+        message: "Invalid Vercel Blob upload request.",
       });
     }
 

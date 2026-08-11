@@ -8,6 +8,7 @@ export const uploadVideo = async (expressionId, file, onProgress) => {
     {
       access: "public",
       handleUploadUrl: `${api.defaults.baseURL}/expressions/${expressionId}/video`,
+      multipart: true,
       onUploadProgress: (event) => {
         if (onProgress) {
           onProgress(event.percentage);
