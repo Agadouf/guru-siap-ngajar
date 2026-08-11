@@ -16,10 +16,23 @@ export const uploadVideo = async (req, res) => {
       });
     }
 
-    // This must be the JSON body sent by @vercel/blob/client
-    const body = req.body;
+    // Vercel Blob client uploads send a JSON event.
+    // Read the raw request body when Express has not populated req.body.
+    let body = req.body;
 
-    console.log("BLOB BODY:", JSON.stringify(body));
+    if (!body) {
+      let rawBody = "";
+
+      for await (const chunk of req) {
+        rawBody += chunk;
+      }
+
+      if (rawBody) {
+        body = JSON.parse(rawBody);
+      }
+    }
+
+    console.log("BLOB BODY:", body);
 
     if (!body || !body.type) {
       return res.status(400).json({
@@ -32,22 +45,14 @@ export const uploadVideo = async (req, res) => {
       body,
       request: req,
 
-      onBeforeGenerateToken: async (
-        pathname,
-        clientPayload,
-        multipart
-      ) => {
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
         return {
           allowedContentTypes: [
             "video/mp4",
             "video/webm",
             "video/ogg",
           ],
-
           addRandomSuffix: true,
-
-          multipart,
-
           tokenPayload: JSON.stringify({
             expressionId: id,
             clientPayload,
