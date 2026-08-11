@@ -9,6 +9,9 @@ import { authenticate } from "../../middleware/auth.middleware.js";
 
 const router = Router();
 
+// Parse JSON specifically for auth requests
+router.use(express.json());
+
 router.post("/login", login);
 
 router.put(
