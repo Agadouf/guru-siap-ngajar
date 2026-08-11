@@ -1,20 +1,48 @@
 import bcrypt from "bcryptjs";
 import prisma from "./src/config/prisma.js";
 
-async function resetPassword() {
-  const hashed = await bcrypt.hash("admin123", 10);
+async function resetAdmin() {
+  const email = "admin@gurusiapngajar.id";
+  const password = "admin123";
+  const name = "Admin";
 
-  await prisma.admin.update({
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const existingAdmin = await prisma.admin.findUnique({
     where: {
-      email: "admin@gurusiapngajar.id",
-    },
-    data: {
-      password: hashed,
+      email,
     },
   });
 
-  console.log("Password reset successfully!");
-  process.exit();
+  if (existingAdmin) {
+    await prisma.admin.update({
+      where: {
+        email,
+      },
+      data: {
+        password: hashedPassword,
+        name,
+      },
+    });
+
+    console.log("Admin password reset successfully!");
+  } else {
+    await prisma.admin.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+      },
+    });
+
+    console.log("Admin account created successfully!");
+  }
+
+  await prisma.$disconnect();
 }
 
-resetPassword();
+resetAdmin().catch(async (error) => {
+  console.error(error);
+  await prisma.$disconnect();
+  process.exit(1);
+});
