@@ -30,18 +30,23 @@ export const uploadVideo = async (req, res) => {
       request: req,
 
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        return {
-          allowedContentTypes: [
-            "video/mp4",
-            "video/webm",
-            "video/ogg",
-          ],
-          addRandomSuffix: true,
-          tokenPayload: JSON.stringify({
-            expressionId: id,
-            clientPayload,
-          }),
-        };
+       return {
+  allowedContentTypes: [
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+  ],
+
+  addRandomSuffix: true,
+
+  callbackUrl:
+    `https://guru-siap-ngajar-backend.vercel.app/api/expressions/${id}/video`,
+
+  tokenPayload: JSON.stringify({
+    expressionId: id,
+  }),
+};
+        
       },
 
       onUploadCompleted: async ({ blob, tokenPayload }) => {

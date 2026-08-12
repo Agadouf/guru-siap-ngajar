@@ -20,6 +20,7 @@ router.put("/:id", updateExpression);
 
 router.delete("/:id", deleteExpression);
 
+//router.post("/:id/video", uploadVideo);
 router.post("/:id/video", uploadVideo);
 
 export default router;
