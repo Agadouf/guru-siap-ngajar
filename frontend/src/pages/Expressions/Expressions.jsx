@@ -465,9 +465,7 @@ return (
 
                       <button
                         onClick={() => {
-                          setPreviewVideo(
-                            `http://localhost:5000${expression.videoUrl}`
-                          );
+                          setPreviewVideo(expression.videoUrl);
                           setShowPreview(true);
                         }}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded"
