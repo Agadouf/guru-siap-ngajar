@@ -12,10 +12,12 @@ app.use(
   cors({
     origin: [
       "https://guru-siap-ngajar-front.vercel.app",
-      "http://localhost:5173",
+      "https://guru-siap-ngajar-front-lof0mp8qk-abdalrahim.vercel.app",
+      /^https:\/\/guru-siap-ngajar-front-.*-abdalrahim\.vercel\.app$/,
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
