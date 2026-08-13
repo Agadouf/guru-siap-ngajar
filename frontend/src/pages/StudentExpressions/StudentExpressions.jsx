@@ -77,7 +77,7 @@ export default function StudentExpressions() {
               <button
                 onClick={() =>
                   setSelectedVideo(
-                    `http://localhost:5000${expression.videoUrl}`
+                    expression.videoUrl
                   )
                 }
                 className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
