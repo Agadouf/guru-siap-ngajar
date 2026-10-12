@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
@@ -17,84 +17,43 @@ export default function Lessons() {
   const { moduleId } = useParams();
 
   const [lessons, setLessons] = useState([]);
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-
   const [editingId, setEditingId] = useState(null);
 
-  async function loadLessons() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const loadLessons = useCallback(async () => {
     try {
+      setLoading(true);
+
       const data = await getLessons();
+      const allLessons = Array.isArray(data) ? data : [];
 
       if (moduleId) {
-        setLessons(
-          data.filter(
-            (lesson) => lesson.moduleId === moduleId
-          )
+        const filteredLessons = allLessons.filter(
+          (lesson) =>
+            String(lesson.moduleId ?? lesson.module_id ?? lesson.module?.id) ===
+            String(moduleId)
         );
+
+        setLessons(filteredLessons);
       } else {
-        setLessons(data);
+        setLessons(allLessons);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to load lessons:", error);
       toast.error("Failed to load lessons.");
+      setLessons([]);
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [moduleId]);
 
   useEffect(() => {
     loadLessons();
-  }, [moduleId]);
-
-  async function handleSave() {
-    if (!moduleId) {
-      toast.error("Please open a module first.");
-      return;
-    }
-
-    if (!title.trim()) {
-      toast.error("Lesson title is required.");
-      return;
-    }
-
-    try {
-      if (editingId) {
-        await updateLesson(editingId, {
-          title,
-          description,
-          moduleId,
-        });
-
-        toast.success("Lesson updated successfully.");
-      } else {
-        await createLesson({
-          title,
-          description,
-          moduleId,
-        });
-
-        toast.success("Lesson added successfully.");
-      }
-
-      handleCancel();
-      loadLessons();
-
-    } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong.");
-    }
-  }
-
-  function handleEdit(lesson) {
-    setEditingId(lesson.id);
-    setTitle(lesson.title);
-    setDescription(lesson.description);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
+  }, [loadLessons]);
 
   function handleCancel() {
     setEditingId(null);
@@ -102,205 +61,320 @@ export default function Lessons() {
     setDescription("");
   }
 
-  async function handleDelete(id) {
+  async function handleSave(event) {
+    event.preventDefault();
 
+    if (!moduleId) {
+      toast.error("Please open a module before managing its lessons.");
+      return;
+    }
+
+    const cleanTitle = title.trim();
+    const cleanDescription = description.trim();
+
+    if (!cleanTitle) {
+      toast.error("Lesson title is required.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const lessonData = {
+        title: cleanTitle,
+        description: cleanDescription,
+        moduleId,
+      };
+
+      if (editingId !== null) {
+        await updateLesson(editingId, lessonData);
+        toast.success("Lesson updated successfully.");
+      } else {
+        await createLesson(lessonData);
+        toast.success("Lesson added successfully.");
+      }
+
+      handleCancel();
+      await loadLessons();
+    } catch (error) {
+      console.error("Failed to save lesson:", error);
+
+      toast.error(
+        error.response?.data?.message || "Failed to save lesson."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleEdit(lesson) {
+    setEditingId(lesson.id);
+    setTitle(lesson.title || "");
+    setDescription(lesson.description || "");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function handleDelete(lesson) {
     const result = await Swal.fire({
       title: "Delete Lesson?",
-      text: "This action cannot be undone.",
+      text: `Are you sure you want to delete "${lesson.title}"? Associated expressions may also be affected.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#6b7280",
-      confirmButtonText: "Delete",
+      confirmButtonText: "Yes, delete it",
       cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      await deleteLesson(id);
+      await deleteLesson(lesson.id);
 
       toast.success("Lesson deleted successfully.");
 
-      if (editingId === id) {
+      if (editingId === lesson.id) {
         handleCancel();
       }
 
-      loadLessons();
-
+      await loadLessons();
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to delete lesson.");
+      console.error("Failed to delete lesson:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to delete lesson. Check whether it contains expressions."
+      );
     }
   }
 
-return (
-  <AdminLayout>
+  return (
+    <AdminLayout>
+      {/* Page heading and navigation */}
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigate("/admin/modules")}
+          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900"
+        >
+          <span aria-hidden="true">←</span>
+          Back to Modules
+        </button>
 
-    <h1 className="text-3xl font-bold mb-6">
-      {moduleId ? "Module Lessons" : "All Lessons"}
-    </h1>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {moduleId ? "Manage Module Lessons" : "All Lessons"}
+            </h1>
 
-    {moduleId && (
+            <p className="mt-2 text-gray-600">
+              {moduleId
+                ? "Create and manage the lessons belonging to this module."
+                : "Choose a module to add or edit its lessons."}
+            </p>
+          </div>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            Total lessons: <strong>{lessons.length}</strong>
+          </div>
+        </div>
+      </div>
 
-        <input
-          className="border p-3 rounded w-full mb-3"
-          placeholder="Lesson Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+      {/* Lesson form */}
+      {moduleId ? (
+        <section className="mb-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="mb-5 text-xl font-semibold text-gray-900">
+            {editingId !== null ? "Edit Lesson" : "Add New Lesson"}
+          </h2>
 
-        <textarea
-          className="border p-3 rounded w-full mb-4"
-          placeholder="Description"
-          rows="4"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+          <form onSubmit={handleSave}>
+            <div className="mb-4">
+              <label
+                htmlFor="lesson-title"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Lesson Title <span className="text-red-600">*</span>
+              </label>
 
-        <div className="flex gap-3">
+              <input
+                id="lesson-title"
+                type="text"
+                maxLength={150}
+                required
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Enter lesson title"
+                className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div className="mb-5">
+              <label
+                htmlFor="lesson-description"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Description
+              </label>
+
+              <textarea
+                id="lesson-description"
+                rows={4}
+                maxLength={2000}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Describe what students will learn in this lesson"
+                className="w-full resize-y rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+
+              <p className="mt-1 text-right text-xs text-gray-500">
+                {description.length}/2000 characters
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-md bg-blue-700 px-5 py-3 font-medium text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving
+                  ? "Saving..."
+                  : editingId !== null
+                    ? "Save Changes"
+                    : "Add Lesson"}
+              </button>
+
+              {editingId !== null && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={saving}
+                  className="rounded-md border border-gray-300 px-5 py-3 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Cancel Editing
+                </button>
+              )}
+            </div>
+          </form>
+        </section>
+      ) : (
+        <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-5 text-blue-900">
+          <h2 className="font-semibold">Select a module first</h2>
+          <p className="mt-2 text-sm leading-6">
+            Open Modules and click View Lessons next to the module you want
+            to manage. This ensures each new lesson belongs to the correct
+            module.
+          </p>
 
           <button
-            onClick={handleSave}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded transition"
+            type="button"
+            onClick={() => navigate("/admin/modules")}
+            className="mt-4 rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
           >
-            {editingId ? "Update Lesson" : "Add Lesson"}
+            Go to Modules
           </button>
+        </div>
+      )}
 
-          {editingId && (
+      {/* Lessons table */}
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {moduleId ? "Lessons in This Module" : "All Lessons"}
+          </h2>
 
-            <button
-              onClick={handleCancel}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded transition"
-            >
-              Cancel
-            </button>
-
-          )}
-
+          <p className="mt-1 text-sm text-gray-500">
+            Open a lesson to manage its expressions.
+          </p>
         </div>
 
-      </div>
-
-    )}
-
-    {!moduleId && (
-
-      <div className="bg-blue-100 text-blue-800 rounded-lg p-4 mb-6">
-
-        Select a module from
-        <strong> Modules → View Lessons </strong>
-        to create or edit lessons.
-
-      </div>
-
-    )}
-
-    <div className="overflow-x-auto bg-white rounded-lg shadow">
-
-      <table className="w-full">
-
-        <thead>
-
-          <tr className="bg-gray-100">
-
-            <th className="p-4 text-left">
-              Title
-            </th>
-
-            <th className="p-4 text-left">
-              Description
-            </th>
-
-            <th className="p-4 text-center">
-              Actions
-            </th>
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          {lessons.length === 0 ? (
-
-            <tr>
-
-              <td
-                colSpan="3"
-                className="text-center p-6 text-gray-500"
-              >
-                No lessons found.
-              </td>
-
-            </tr>
-
-          ) : (
-
-            lessons.map((lesson) => (
-
-              <tr
-                key={lesson.id}
-                className="border-t hover:bg-gray-50"
-              >
-
-                <td className="p-4 font-medium">
-                  {lesson.title}
-                </td>
-
-                <td className="p-4">
-                  {lesson.description}
-                </td>
-
-                <td className="p-4">
-
-                  <div className="flex justify-center gap-2 flex-wrap">
-
-                    <button
-                      onClick={() =>
-                        navigate(`/lessons/${lesson.id}/expressions`)
-                      }
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
-                    >
-                      View Expressions
-                    </button>
-
-                    {moduleId && (
-                      <button
-                        onClick={() => handleEdit(lesson)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded transition"
-                      >
-                        Edit
-                      </button>
-                    )}
-
-                    {moduleId && (
-                      <button
-                        onClick={() => handleDelete(lesson.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition"
-                      >
-                        Delete
-                      </button>
-                    )}
-
-                  </div>
-
-                </td>
-
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[650px] text-left">
+            <thead className="bg-gray-50 text-sm text-gray-700">
+              <tr>
+                <th className="px-5 py-4 font-semibold">Lesson Title</th>
+                <th className="px-5 py-4 font-semibold">Description</th>
+                <th className="px-5 py-4 text-center font-semibold">
+                  Actions
+                </th>
               </tr>
+            </thead>
 
-            ))
+            <tbody className="divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-10 text-center text-gray-500"
+                  >
+                    Loading lessons...
+                  </td>
+                </tr>
+              ) : lessons.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-10 text-center text-gray-500"
+                  >
+                    No lessons found for this module. Add your first lesson
+                    using the form above.
+                  </td>
+                </tr>
+              ) : (
+                lessons.map((lesson) => (
+                  <tr key={lesson.id} className="transition hover:bg-gray-50">
+                    <td className="px-5 py-4 font-medium text-gray-900">
+                      {lesson.title}
+                    </td>
 
-          )}
+                    <td className="max-w-sm whitespace-pre-wrap break-words px-5 py-4 text-sm text-gray-600">
+                      {lesson.description || "—"}
+                    </td>
 
-        </tbody>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(`/lessons/${lesson.id}/expressions`)
+                          }
+                          className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800"
+                        >
+                          View Expressions
+                        </button>
 
-      </table>
+                        {moduleId && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(lesson)}
+                              className="rounded-md bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600"
+                            >
+                              Edit
+                            </button>
 
-    </div>
-
-  </AdminLayout>
-);
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(lesson)}
+                              className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </AdminLayout>
+  );
 }
