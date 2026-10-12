@@ -160,13 +160,19 @@ export default function StudentModules() {
                   key={module.id}
                   className="border-b border-gray-300"
                 >
-                <button
+        
+<button
   type="button"
-  onClick={() => navigate(`/modules/${module.id}/lessons`)}
-  className="flex w-full items-start justify-between gap-3 px-2 py-3 text-left text-sm text-gray-800 transition-colors hover:bg-gray-100"
+  aria-expanded={isExpanded}
+  onClick={() => handleModuleClick(module)}
+  className={`flex w-full items-start justify-between gap-3 px-2 py-3 text-left text-sm transition-colors ${
+    isExpanded
+      ? "bg-blue-50 font-semibold text-blue-900"
+      : "text-gray-800 hover:bg-gray-100"
+  }`}
 >
   <span>{module.title}</span>
-  <span aria-hidden="true">→</span>
+  <span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
 </button>
 
                   {isExpanded && (
