@@ -10,23 +10,40 @@ export default function StudentModules() {
   const [lessons, setLessons] = useState([]);
   const [expandedModule, setExpandedModule] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
+  const [loadingModules, setLoadingModules] = useState(true);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadModules() {
       try {
         const data = await getModules();
-        setModules(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to load modules:", error);
-        setError("Unable to load modules. Please refresh the page.");
+
+        if (!cancelled) {
+          setModules(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to load modules:", err);
+
+        if (!cancelled) {
+          setError("Unable to load modules. Please refresh the page.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingModules(false);
+        }
       }
     }
 
     loadModules();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleModuleClick(module) {
@@ -34,9 +51,11 @@ export default function StudentModules() {
       setExpandedModule(null);
       setLessons([]);
       setSelectedLesson(null);
+      setError("");
       return;
     }
 
+    // Close the previous module and open only the clicked module.
     setExpandedModule(module.id);
     setLessons([]);
     setSelectedLesson(null);
@@ -45,80 +64,104 @@ export default function StudentModules() {
 
     try {
       const data = await getLessons(module.id);
-      setLessons(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to load lessons:", error);
-      setError("Unable to load lessons for this module.");
+
+      // Ignore results if the user has already opened another module.
+      setLessons(
+        Array.isArray(data) ? data : []
+      );
+    } catch (err) {
+      console.error("Failed to load lessons:", err);
+      setError("Unable to load lessons. Please try again.");
     } finally {
       setLoadingLessons(false);
     }
   }
 
+  function openLesson(lesson) {
+    setSelectedLesson(lesson);
+  }
+
   return (
     <StudentLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold">
+      <div className="mb-8 border-b border-gray-300 pb-5">
+        <h1 className="text-3xl md:text-4xl font-normal text-gray-900">
           English Learning
         </h1>
-        <p className="text-gray-600 mt-2">
-          Select a module to explore its lessons and start learning English.
+
+        <p className="mt-3 text-gray-600 leading-7">
+          Explore the learning modules and select a lesson to begin.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] gap-6">
-        <aside className="bg-white border border-gray-200 rounded-lg p-4 h-fit shadow-sm">
-          <h2 className="text-lg font-bold mb-4">Learning Modules</h2>
+      <div className="grid grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)] gap-8">
+        {/* LEFT SIDEBAR */}
+        <aside className="min-w-0">
+          <h2 className="text-lg font-bold text-gray-900 pb-3 border-b-2 border-blue-800">
+            Learning Modules
+          </h2>
 
-          {modules.length === 0 && !error && (
-            <p className="text-gray-500 text-sm">
-              No modules available yet.
+          {loadingModules && (
+            <p className="py-4 text-sm text-gray-500">
+              Loading modules...
             </p>
           )}
 
-          <div className="space-y-2">
+          {!loadingModules && modules.length === 0 && !error && (
+            <p className="py-4 text-sm text-gray-500">
+              No modules are available yet.
+            </p>
+          )}
+
+          <div>
             {modules.map((module) => {
               const isExpanded = expandedModule === module.id;
 
               return (
-                <div
+                <section
                   key={module.id}
-                  className="border-b border-gray-100 pb-2"
+                  className="border-b border-gray-300"
                 >
                   <button
                     type="button"
                     onClick={() => handleModuleClick(module)}
                     aria-expanded={isExpanded}
-                    className={`w-full flex items-start justify-between gap-3 text-left p-3 rounded-md transition ${
+                    className={`w-full flex items-start justify-between gap-3 py-3 px-2 text-left text-sm transition-colors ${
                       isExpanded
-                        ? "bg-blue-50 text-blue-800"
-                        : "hover:bg-gray-50 text-gray-800"
+                        ? "bg-blue-50 text-blue-900 font-semibold"
+                        : "text-gray-800 hover:bg-gray-100"
                     }`}
                   >
-                    <span className="font-semibold">
-                      📚 {module.title}
-                    </span>
-                    <span aria-hidden="true">
+                    <span>{module.title}</span>
+
+                    <span
+                      aria-hidden="true"
+                      className="text-lg leading-4"
+                    >
                       {isExpanded ? "−" : "+"}
                     </span>
                   </button>
 
                   {isExpanded && (
-                    <div className="mt-2 ml-3 pl-3 border-l-2 border-blue-200">
+                    <div className="pb-3 pl-4 pr-2">
                       {loadingLessons ? (
-                        <p className="text-sm text-gray-500 py-2">
+                        <p className="py-2 text-sm text-gray-500">
                           Loading lessons...
                         </p>
+                      ) : error ? (
+                        <p className="py-2 text-sm text-red-600">
+                          {error}
+                        </p>
                       ) : lessons.length > 0 ? (
-                        <ul className="space-y-1">
+                        <ul className="border-l-2 border-blue-200">
                           {lessons.map((lesson) => (
                             <li key={lesson.id}>
                               <button
                                 type="button"
-                                onClick={() => setSelectedLesson(lesson)}
-                                className={`w-full text-left text-sm rounded-md px-3 py-2 transition ${
+                                onClick={() => openLesson(lesson)}
+                                className={`block w-full text-left py-2 px-3 text-sm transition-colors ${
                                   selectedLesson?.id === lesson.id
-                                    ? "bg-blue-100 text-blue-800 font-semibold"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-700"
+                                    ? "bg-blue-100 text-blue-900 font-semibold"
+                                    : "text-gray-700 hover:text-blue-800 hover:bg-gray-50"
                                 }`}
                               >
                                 {lesson.title}
@@ -127,59 +170,66 @@ export default function StudentModules() {
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm text-gray-500 py-2">
+                        <p className="py-2 text-sm text-gray-500">
                           No lessons found in this module.
                         </p>
                       )}
                     </div>
                   )}
-                </div>
+                </section>
               );
             })}
           </div>
         </aside>
 
-        <main className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm min-h-[300px]">
-          {error ? (
-            <p className="text-red-600">{error}</p>
-          ) : selectedLesson ? (
-            <>
-              <p className="text-sm text-blue-600 font-semibold mb-2">
-                SELECTED LESSON
+        {/* MAIN CONTENT */}
+        <main className="min-w-0">
+          {selectedLesson ? (
+            <article>
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-800 mb-3">
+                Selected Lesson
               </p>
 
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              <h2 className="text-2xl md:text-3xl font-normal text-gray-900 border-b border-gray-300 pb-4">
                 {selectedLesson.title}
               </h2>
 
               {selectedLesson.description && (
-                <p className="text-gray-600 mt-4 leading-7">
+                <p className="mt-5 text-gray-700 leading-7">
                   {selectedLesson.description}
                 </p>
               )}
 
+              <p className="mt-5 text-gray-600 leading-7">
+                Select Open Lesson Content to access the lesson and its
+                learning materials.
+              </p>
+
               <button
                 type="button"
                 onClick={() =>
-                  navigate(
-                    `/modules/${expandedModule}/lessons`
-                  )
+                  navigate(`/modules/${expandedModule}/lessons`)
                 }
-                className="mt-6 inline-flex items-center bg-blue-600 text-white px-5 py-3 rounded-md hover:bg-blue-700 transition"
+                className="mt-5 inline-block bg-blue-800 text-white px-5 py-3 text-sm hover:bg-blue-900 transition-colors"
               >
                 Open Lesson Content →
               </button>
-            </>
+            </article>
           ) : (
-            <div className="flex flex-col justify-center min-h-[250px]">
-              <h2 className="text-2xl font-bold text-gray-800">
+            <article>
+              <h2 className="text-2xl md:text-3xl font-normal text-gray-900 border-b border-gray-300 pb-4">
                 Welcome to English Learning
               </h2>
-              <p className="text-gray-600 mt-3 leading-7">
-                Choose a module from the sidebar. Its lessons will appear
-                directly underneath it. Select a lesson to see its details.
+
+              <p className="mt-5 text-gray-700 leading-7">
+                Choose a module from the menu on the left. Only the lessons
+                belonging to the selected module will appear underneath it.
               </p>
-            </div>
+
+              <p className="mt-3 text-gray-700 leading-7">
+                Select a lesson to view its details and continue learning.
+              </p>
+            </article>
           )}
         </main>
       </div>
