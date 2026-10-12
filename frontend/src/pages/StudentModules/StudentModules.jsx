@@ -1,14 +1,12 @@
 
 async function handleModuleClick(module) {
-  if (expandedModule === module.id) {
+  if (String(expandedModule) === String(module.id)) {
     setExpandedModule(null);
     setLessons([]);
     setSelectedLesson(null);
     setError("");
     return;
   }
-
-  const clickedModuleId = String(module.id);
 
   setExpandedModule(module.id);
   setLessons([]);
@@ -17,9 +15,11 @@ async function handleModuleClick(module) {
   setError("");
 
   try {
-    const data = await getLessons(module.id);
+    // Fetch all lessons directly.
+    const data = await getLessons();
     const allLessons = Array.isArray(data) ? data : [];
 
+    // Keep only lessons belonging to the selected module.
     const filteredLessons = allLessons.filter((lesson) => {
       const lessonModuleId =
         lesson.moduleId ??
@@ -28,11 +28,10 @@ async function handleModuleClick(module) {
 
       return (
         lessonModuleId != null &&
-        String(lessonModuleId) === clickedModuleId
+        String(lessonModuleId) === String(module.id)
       );
     });
 
-    // Ignore results if the user has opened another module.
     setLessons(filteredLessons);
   } catch (err) {
     console.error("Failed to load lessons:", err);
