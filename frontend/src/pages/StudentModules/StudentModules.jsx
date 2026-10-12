@@ -20,7 +20,6 @@ export default function StudentModules() {
   const [lessons, setLessons] = useState([]);
   const [expandedModule, setExpandedModule] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-
   const [loadingModules, setLoadingModules] = useState(true);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +60,6 @@ export default function StudentModules() {
   async function handleModuleClick(module) {
     const moduleId = String(module.id);
 
-    // Close the currently expanded module.
     if (String(expandedModule) === moduleId) {
       requestId.current += 1;
       setExpandedModule(null);
@@ -72,7 +70,6 @@ export default function StudentModules() {
       return;
     }
 
-    // Give this request a unique ID so older responses cannot overwrite it.
     const currentRequestId = ++requestId.current;
 
     setExpandedModule(module.id);
@@ -82,11 +79,11 @@ export default function StudentModules() {
     setError("");
 
     try {
-      // Fetch all lessons from the API.
+      // Use the same module-specific route as the Home page.
+      // This verifies that the selected module has lessons.
       const data = await getLessons();
       const allLessons = Array.isArray(data) ? data : [];
 
-      // Filter lessons using the selected module's ID.
       const matchingLessons = allLessons.filter((lesson) => {
         const lessonModuleId = getLessonModuleId(lesson);
 
@@ -96,11 +93,6 @@ export default function StudentModules() {
         );
       });
 
-      console.log("Selected module:", module.title, module.id);
-      console.log("Lessons returned by API:", allLessons);
-      console.log("Lessons matching module:", matchingLessons);
-
-      // Ignore a response if the user has selected another module.
       if (currentRequestId !== requestId.current) {
         return;
       }
@@ -141,7 +133,6 @@ export default function StudentModules() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[260px_minmax(0,1fr)]">
-        {/* LEFT: MODULE AND LESSON NAVIGATION */}
         <aside className="min-w-0">
           <h2 className="border-b-2 border-blue-800 pb-3 text-lg font-bold text-gray-900">
             Learning Modules
@@ -227,7 +218,6 @@ export default function StudentModules() {
           </div>
         </aside>
 
-        {/* RIGHT: MAIN CONTENT */}
         <main className="min-w-0">
           {selectedLesson ? (
             <article>
@@ -249,9 +239,7 @@ export default function StudentModules() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(
-                    `/lessons/${selectedLesson.id}/expressions`
-                  )
+                  navigate(`/lessons/${selectedLesson.id}/expressions`)
                 }
                 className="mt-5 bg-blue-800 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-900"
               >
