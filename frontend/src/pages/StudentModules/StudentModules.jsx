@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import StudentLayout from "../../components/Layout/StudentLayout/StudentLayout";
 import { getModules } from "../../services/module.service";
 
-export default function StudentModules() {
+export default function StudentModules() console.log("STUDENT MODULES VERSION TEST 123");{
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
