@@ -12,6 +12,7 @@ app.use(
   cors({
     origin: [
       "https://guru-siap-ngajar-front.vercel.app",
+      "https://siap-english.vercel.app",
       "https://guru-siap-ngajar-front-lof0mp8qk-abdalrahim.vercel.app",
       /^https:\/\/guru-siap-ngajar-front-.*-abdalrahim\.vercel\.app$/,
     ],
